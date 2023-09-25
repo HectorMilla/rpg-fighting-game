@@ -46,10 +46,25 @@ class Fighter:
         self.start_potions = potions
         self.potions = potions
         self.alive = True
-        self.image = pygame.image.load(f"img/{self.name}/idle/0.png")
+        img = pygame.image.load(f"img/{self.name}/idle/0.png")
+        self.image = pygame.transform.scale(
+            img, (img.get_width() * 3, img.get_height() * 3)
+        )
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
 
+    def draw(self):
+        screen.blit(self.image, self.rect)
+
+
+# create knight and bandit
+knight = Fighter(200, 320, "knight", 30, 10, 3)
+bandit1 = Fighter(550, 320, "bandit", 20, 6, 1)
+bandit2 = Fighter(700, 320, "bandit", 10, 10, 1)
+
+bandit_list = []
+bandit_list.append(bandit1)
+bandit_list.append(bandit2)
 
 run = True
 
@@ -60,6 +75,11 @@ while run:
     draw_bg()
     # draw panel
     draw_panel()
+    # draw fighter
+    knight.draw()
+    # draw bandits
+    for bandit in bandit_list:
+        bandit.draw()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
