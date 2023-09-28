@@ -14,6 +14,12 @@ screen_height = 400 + bottom_panel
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Battle")
 
+# define font
+font = pygame.font.SysFont("Times New Roman", 26)
+
+# define colors
+red = (255, 0, 0)
+green = (0, 255, 0)
 
 # load images
 # background image
@@ -26,6 +32,12 @@ background_img = pygame.transform.scale(
 panel_img = pygame.image.load("img/icons/panel.png").convert_alpha()
 
 
+# create function for drawing text
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x, y))
+
+
 # function for drawing background
 def draw_bg():
     screen.blit(background_img, (0, 0))
@@ -33,7 +45,16 @@ def draw_bg():
 
 # function for drawing panel
 def draw_panel():
+    # draw panel rectangle
     screen.blit(panel_img, (0, screen_height - bottom_panel))
+    # show knight stats
+    draw_text(
+        f"{knight.name} HP: {knight.hp}",
+        font,
+        red,
+        100,
+        screen_height - bottom_panel + 10,
+    )
 
 
 # fighter class
@@ -46,21 +67,53 @@ class Fighter:
         self.start_potions = potions
         self.potions = potions
         self.alive = True
-        img = pygame.image.load(f"img/{self.name}/idle/0.png")
-        self.image = pygame.transform.scale(
-            img, (img.get_width() * 3, img.get_height() * 3)
-        )
+        self.animation_list = []
+        self.frame_index = 0
+        self.action = 1  # 0:idle, 1:attack, 2:hurt 3:dead
+        self.update_time = pygame.time.get_ticks()
+        # load idle images
+        temp_list = []
+        for i in range(8):
+            img = pygame.image.load(f"img/{self.name}/idle/{i}.png")
+            img = pygame.transform.scale(
+                img, (img.get_width() * 3, img.get_height() * 3)
+            )
+            temp_list.append(img)
+        self.animation_list.append(temp_list)
+        # load attack images
+        temp_list = []
+        for i in range(8):
+            img = pygame.image.load(f"img/{self.name}/attack/{i}.png")
+            img = pygame.transform.scale(
+                img, (img.get_width() * 3, img.get_height() * 3)
+            )
+            temp_list.append(img)
+        self.animation_list.append(temp_list)
+        self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+
+    def update(self):
+        animation_cooldown = 100
+        # handle animation
+        # update image
+        self.image = self.animation_list[self.action][self.frame_index]
+        # check if enough time has passed since the last update
+        if pygame.time.get_ticks() - self.update_time > animation_cooldown:
+            self.update_time = pygame.time.get_ticks()
+            self.frame_index += 1
+        # if the animation has run out then reset back to the start
+        if self.frame_index >= len(self.animation_list[self.action]):
+            self.frame_index = 0
 
     def draw(self):
         screen.blit(self.image, self.rect)
 
 
 # create knight and bandit
-knight = Fighter(200, 320, "knight", 30, 10, 3)
-bandit1 = Fighter(550, 320, "bandit", 20, 6, 1)
-bandit2 = Fighter(700, 320, "bandit", 10, 10, 1)
+knight = Fighter(200, 320, "Knight", 30, 10, 3)
+bandit1 = Fighter(550, 320, "Bandit", 20, 6, 1)
+bandit2 = Fighter(700, 320, "Bandit", 10, 10, 1)
 
 bandit_list = []
 bandit_list.append(bandit1)
@@ -76,9 +129,11 @@ while run:
     # draw panel
     draw_panel()
     # draw fighter
+    knight.update()
     knight.draw()
     # draw bandits
     for bandit in bandit_list:
+        bandit.update()
         bandit.draw()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
