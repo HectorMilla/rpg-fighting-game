@@ -55,6 +55,15 @@ def draw_panel():
         100,
         screen_height - bottom_panel + 10,
     )
+    # show bandit stats
+    for count, i in enumerate(bandit_list):
+        draw_text(
+            f"{i.name} HP: {i.hp}",
+            font,
+            red,
+            550,
+            (screen_height - bottom_panel + 10) + count * 60,
+        )
 
 
 # fighter class
@@ -110,6 +119,22 @@ class Fighter:
         screen.blit(self.image, self.rect)
 
 
+class HealthBar:
+    def __init__(self, x, y, hp, max_hp):
+        self.x = x
+        self.y = y
+        self.hp = hp
+        self.max_hp = max_hp
+
+    def draw(self, hp):
+        # update with new health
+        self.hp = hp
+        # calculate health ratio
+        ratio = self.hp / self.max_hp
+        pygame.draw.rect(screen, red, (self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, green, (self.x, self.y, 150 * ratio, 20))
+
+
 # create knight and bandit
 knight = Fighter(200, 320, "Knight", 30, 10, 3)
 bandit1 = Fighter(550, 320, "Bandit", 20, 6, 1)
@@ -119,8 +144,19 @@ bandit_list = []
 bandit_list.append(bandit1)
 bandit_list.append(bandit2)
 
-run = True
 
+# create health bars
+knight_health_bar = HealthBar(
+    100, screen_height - bottom_panel + 40, knight.hp, knight.max_hp
+)
+bandit1_health_bar = HealthBar(
+    550, screen_height - bottom_panel + 40, bandit1.hp, bandit1.max_hp
+)
+bandit2_health_bar = HealthBar(
+    550, screen_height - bottom_panel + 100, bandit2.hp, bandit2.max_hp
+)
+run = True
+knight.hp = 20
 while run:
     # set frames
     clock.tick(fps)
@@ -128,6 +164,9 @@ while run:
     draw_bg()
     # draw panel
     draw_panel()
+    knight_health_bar.draw(knight.hp)
+    bandit1_health_bar.draw(bandit1.hp)
+    bandit2_health_bar.draw(bandit2.hp)
     # draw fighter
     knight.update()
     knight.draw()
