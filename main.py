@@ -1,4 +1,5 @@
 import pygame
+import random
 
 pygame.init()
 
@@ -13,6 +14,15 @@ screen_height = 400 + bottom_panel
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Battle")
+
+# define game variables
+current_fighter = 1
+total_fighters = 3
+action_cooldown = 0
+action_wait_time = 90
+attack = False
+potion = False
+clicked = False
 
 # define font
 font = pygame.font.SysFont("Times New Roman", 26)
@@ -30,6 +40,9 @@ background_img = pygame.transform.scale(
 
 # panel image
 panel_img = pygame.image.load("img/icons/panel.png").convert_alpha()
+
+# sword image
+sword_img = pygame.image.load("img/icons/sword.png").convert_alpha()
 
 
 # create function for drawing text
@@ -78,7 +91,7 @@ class Fighter:
         self.alive = True
         self.animation_list = []
         self.frame_index = 0
-        self.action = 1  # 0:idle, 1:attack, 2:hurt 3:dead
+        self.action = 0  # 0:idle, 1:attack, 2:hurt 3:dead
         self.update_time = pygame.time.get_ticks()
         # load idle images
         temp_list = []
@@ -113,7 +126,26 @@ class Fighter:
             self.frame_index += 1
         # if the animation has run out then reset back to the start
         if self.frame_index >= len(self.animation_list[self.action]):
-            self.frame_index = 0
+            self.idle()
+
+    def idle(self):
+        self.action = 0
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+
+    def attack(self, target):
+        # deal damage to enemy
+        rand = random.randint(-5, 5)
+        damage = self.strength + rand
+        target.hp -= damage
+        # check if enemy is dead
+        if target.hp < 1:
+            target.hp = 0
+            target.alive = False
+        # set variables to attack animation
+        self.action = 1
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
 
     def draw(self):
         screen.blit(self.image, self.rect)
@@ -136,7 +168,7 @@ class HealthBar:
 
 
 # create knight and bandit
-knight = Fighter(200, 320, "Knight", 30, 10, 3)
+knight = Fighter(200, 320, "Knight", 50, 10, 3)
 bandit1 = Fighter(550, 320, "Bandit", 20, 6, 1)
 bandit2 = Fighter(700, 320, "Bandit", 10, 10, 1)
 
@@ -156,7 +188,7 @@ bandit2_health_bar = HealthBar(
     550, screen_height - bottom_panel + 100, bandit2.hp, bandit2.max_hp
 )
 run = True
-knight.hp = 20
+
 while run:
     # set frames
     clock.tick(fps)
@@ -174,7 +206,57 @@ while run:
     for bandit in bandit_list:
         bandit.update()
         bandit.draw()
+
+    # control player actions
+    # reset action variables
+    attack = False
+    potion = False
+    target = None
+    # make sure mouse is visible
+    pygame.mouse.set_visible(True)
+    pos = pygame.mouse.get_pos()
+    for count, bandit in enumerate(bandit_list):
+        if bandit.rect.collidepoint(pos):
+            # hide mouse
+            pygame.mouse.set_visible(False)
+            # show sword in place of mouse cursor
+            screen.blit(sword_img, pos)
+            if clicked == True:
+                attack = True
+                target = bandit_list[count]
+
+    # player action
+    if knight.alive == True:
+        if current_fighter == 1:
+            action_cooldown += 1
+            if action_cooldown >= action_wait_time:
+                # look for player action
+                # attack
+                if attack == True and target != None:
+                    knight.attack(target)
+                    current_fighter += 1
+                    action_cooldown = 0
+    # enemy action
+    for count, bandit in enumerate(bandit_list):
+        if current_fighter == 2 + count:
+            if bandit.alive == True:
+                action_cooldown += 1
+                if action_cooldown >= action_wait_time:
+                    # attack
+                    bandit.attack(knight)
+                    current_fighter += 1
+                    action_cooldown = 0
+            else:
+                current_fighter += 1
+    # if all fighters have had their turn then reset
+    if current_fighter > total_fighters:
+        current_fighter = 1
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            clicked = True
+        else:
+            clicked = False
     pygame.display.update()
